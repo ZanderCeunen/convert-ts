@@ -3,75 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image Converter</title>
+    <title>File Converter</title>
 </head>
 <body>
-    <input type="file" id="imageInput" multiple>
-    <select id="outputFormat">
-        <option value="png">PNG</option>
-        <option value="jpeg">JPEG</option>
-        <option value="heic">HEIC</option>
-        <!-- Add other format options here -->
-    </select>
-    <button onclick="convertToImage()">Convert</button>
-    <div id="progressBar"></div>
+    <h1>File Converter</h1>
+    <input type="file" id="upload" accept="image/jpeg, image/heic, video/avi">
+    <canvas id="canvas" style="display:none;"></canvas>
+    <a id="download" download>Download</a>
 
-    <script>
-        function convertToImage() {
-            const input = document.getElementById('imageInput');
-            const outputFormat = document.getElementById('outputFormat').value;
-            const progressBar = document.getElementById('progressBar');
+    <script type="module">
+        import heic2any from 'heic2any';
+        import { createFFmpeg, fetchFile } from '@ffmpeg/ffmpeg';
 
-            const files = Array.from(input.files);
-            if (files.length === 0) return;
-
-            let processedCount = 0;
-
-            function processFile(file) {
+        document.getElementById('upload').addEventListener('change', async (event) => {
+            const file = (event.target as HTMLInputElement).files[0];
+            if (file) {
+                const fileType = file.type;
                 const reader = new FileReader();
-                reader.onload = function (event) {
-                    const img = new Image();
-                    img.src = event.target.result;
 
-                    img.onload = function () {
-                        const canvas = document.createElement('canvas');
-                        canvas.width = img.width;
-                        canvas.height = img.height;
-
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, img.width, img.height);
-
-                        // Convert canvas to data URL based on selected format
-                        const dataUrl = canvas.toDataURL(`image/${outputFormat}`);
-
-                        // Create a download link
-                        const a = document.createElement('a');
-                        a.href = dataUrl;
-                        a.download = `${file.name.replace(/\.[^.]+$/, '')}.${outputFormat}`;
-                        a.click();
-
-                        processedCount++;
-                        updateProgressBar();
+                if (fileType === 'image/jpeg') {
+                    reader.onload = (e) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            const canvas = document.getElementById('canvas') as HTMLCanvasElement;
+                            const ctx = canvas.getContext('2d');
+                            canvas.width = img.width;
+                            canvas.height = img.height;
+                            ctx.drawImage(img, 0, 0);
+                            const pngUrl = canvas.toDataURL('image/png');
+                            const downloadLink = document.getElementById('download') as HTMLAnchorElement;
+                            downloadLink.href = pngUrl;
+                            downloadLink.download = 'converted.png';
+                            downloadLink.style.display = 'block';
+                        };
+                        img.src = e.target.result as string;
                     };
-                };
-
-                reader.readAsDataURL(file);
-            }
-
-
-            function updateProgressBar() {
-                const progress = (processedCount / files.length) * 100;
-                progressBar.style.width = `${progress}%`;
-
-                if (processedCount === files.length) {
-                    setTimeout(() => {
-                        progressBar.style.width = '0%'; // Reset progress bar
-                    }, 1000);
+                    reader.readAsDataURL(file);
+                } else if (fileType === 'image/heic') {
+                    reader.onload = async (e) => {
+                        const heicBlob = new Blob([new Uint8Array(e.target.result as ArrayBuffer)], { type: 'image/heic' });
+                        const jpgBlob = await heic2any({ blob: heicBlob, toType: 'image/jpeg' });
+                        const jpgUrl = URL.createObjectURL(jpgBlob);
+                        const downloadLink = document.getElementById('download') as HTMLAnchorElement;
+                        downloadLink.href = jpgUrl;
+                        downloadLink.download = 'converted.jpg';
+                        downloadLink.style.display = 'block';
+                    };
+                    reader.readAsArrayBuffer(file);
+                } else if (fileType === 'video/avi') {
+                    const ffmpeg = createFFmpeg({ log: true });
+                    await ffmpeg.load();
+                    reader.onload = async (e) => {
+                        const aviData = new Uint8Array(e.target.result as ArrayBuffer);
+                        ffmpeg.FS('writeFile', 'input.avi', aviData);
+                        await ffmpeg.run('-i', 'input.avi', 'output.mp4');
+                        const mp4Data = ffmpeg.FS('readFile', 'output.mp4');
+                        const mp4Blob = new Blob([mp4Data.buffer], { type: 'video/mp4' });
+                        const mp4Url = URL.createObjectURL(mp4Blob);
+                        const downloadLink = document.getElementById('download') as HTMLAnchorElement;
+                        downloadLink.href = mp4Url;
+                        downloadLink.download = 'converted.mp4';
+                        downloadLink.style.display = 'block';
+                    };
+                    reader.readAsArrayBuffer(file);
                 }
             }
-
-            files.forEach(processFile);
-        }
+        });
     </script>
 </body>
 </html>
