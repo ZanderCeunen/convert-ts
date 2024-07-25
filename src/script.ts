@@ -13,22 +13,25 @@ convertButton.addEventListener('click', async () => {
     try {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
-        const image = new Image();
-        image.src = URL.createObjectURL(file);
+        const video = new Image();
+        video.src = URL.createObjectURL(file);
 
-        image.onload = () => {
-            canvas.width = image.width;
-            canvas.height = image.height;
-            ctx.drawImage(image, 0, 0);
+        video.onload = async () => {
+            canvas.width = video.width;
+            canvas.height = video.height;
+            ctx.drawImage(video, 0, 0);
+
             const outputFileBuffer = await new Promise(resolve => {
                 canvas.toBlob(async (blob) => {
                     resolve(blob);
-                }, 'image/' + outputFileFormat);
+                }, 'video/' + outputFileFormat);
             });
 
             const outputFileUrl = URL.createObjectURL(outputFileBuffer);
             downloadLink.href = outputFileUrl;
             downloadLink.download = file.name + '.' + outputFileFormat;
+
+            downloadLink.click();
         };
     } catch (error) {
         console.error(error);
