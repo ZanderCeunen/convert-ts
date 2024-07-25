@@ -1,19 +1,25 @@
-// index.html
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JPG to PNG Converter</title>
+    <title>Image Converter</title>
 </head>
 <body>
     <input type="file" id="imageInput" multiple>
-    <button onclick="convertToPNG()">Convert to PNG</button>
+    <select id="outputFormat">
+        <option value="png">PNG</option>
+        <option value="jpeg">JPEG</option>
+        <option value="heic">HEIC</option>
+        <!-- Add other format options here -->
+    </select>
+    <button onclick="convertToImage()">Convert</button>
     <div id="progressBar"></div>
 
     <script>
-        function convertToPNG() {
+        function convertToImage() {
             const input = document.getElementById('imageInput');
+            const outputFormat = document.getElementById('outputFormat').value;
             const progressBar = document.getElementById('progressBar');
 
             const files = Array.from(input.files);
@@ -35,13 +41,13 @@
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, img.width, img.height);
 
-                        // Convert canvas to PNG data URL
-                        const pngDataUrl = canvas.toDataURL('image/png');
+                        // Convert canvas to data URL based on selected format
+                        const dataUrl = canvas.toDataURL(`image/${outputFormat}`);
 
                         // Create a download link
                         const a = document.createElement('a');
-                        a.href = pngDataUrl;
-                        a.download = `${file.name.replace(/\.[^.]+$/, '')}.png`;
+                        a.href = dataUrl;
+                        a.download = `${file.name.replace(/\.[^.]+$/, '')}.${outputFormat}`;
                         a.click();
 
                         processedCount++;
@@ -51,6 +57,7 @@
 
                 reader.readAsDataURL(file);
             }
+
 
             function updateProgressBar() {
                 const progress = (processedCount / files.length) * 100;
