@@ -23,7 +23,9 @@ convertButton.addEventListener('click', async () => {
             throw new Error('Unsupported file type');
         }
 
-        statusElement.innerText = 'Conversion complete';
+        downloadLink.href = URL.createObjectURL(fileBuffer);
+        downloadLink.download = file.name + '.' + outputFileFormat;
+        downloadLink.click();
     } catch (error) {
         statusElement.innerText = 'Error: ' + error.message;
     }
@@ -40,17 +42,11 @@ async function convertImage(file, outputFileFormat) {
         canvas.height = image.height;
         ctx.drawImage(image, 0, 0);
 
-        const outputFileBuffer = await new Promise(resolve => {
+        fileBuffer = await new Promise(resolve => {
             canvas.toBlob(async (blob) => {
                 resolve(blob);
             }, 'image/' + outputFileFormat);
         });
-
-        const outputFileUrl = URL.createObjectURL(outputFileBuffer);
-        downloadLink.href = outputFileUrl;
-        downloadLink.download = file.name + '.' + outputFileFormat;
-
-        downloadLink.click();
     };
 }
 
@@ -60,26 +56,25 @@ async function convertVideo(file, outputFileFormat) {
     video.controls = true;
     video.play();
 
-    const animationFrameId = setInterval(() => {
+    let frameCount = 0;
+    let animationFrameId;
+
+    animationFrameId = setInterval(() => {
         canvas.width = video.width;
         canvas.height = video.height;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(video, 0, 0);
 
-        if (video.ended) {
+        frameCount++;
+
+        if (frameCount >= video.duration * 30) {
             clearInterval(animationFrameId);
 
-            const outputFileBuffer = await new Promise(resolve => {
+            fileBuffer = await new Promise(resolve => {
                 canvas.toBlob(async (blob) => {
                     resolve(blob);
                 }, 'video/' + outputFileFormat);
             });
-
-            const outputFileUrl = URL.createObjectURL(outputFileBuffer);
-            downloadLink.href = outputFileUrl;
-            downloadLink.download = file.name + '.' + outputFileFormat;
-
-            downloadLink.click();
         }
     }, 30);
 }

@@ -1,27 +1,17 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image and Video Converter</title>
-    <link rel="stylesheet" href="styles.css">
+  <title>File Converter</title>
+  <script src="https://cdn.jsdelivr.net/npm/caniuse@1.0.30000734/dist/caniuse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.2/dist/FileSaver.min.js"></script>
 </head>
 <body>
-    <h1>Image and Video Converter</h1>
-    <div class="container">
-        <label for="file">Select a file:</label>
-        <input type="file" id="file" accept=".jpg,.jpeg,.png,.heic,.mp4,.avi">
-        <select id="output-format">
-            <option value="jpg">JPEG</option>
-            <option value="png">PNG</option>
-            <option value="heic">HEIC</option>
-            <option value="mp4">MP4</option>
-            <option value="avi">AVI</option>
-        </select>
-        <button id="convert-btn">Convert</button>
-        <a id="download-link" download></a>
-    </div>
-    <script src="https://cdn.jsdelivr.net/npm/caniuse@1.0.30000734/dist/caniuse.min.js"></script>
-    <script src="script.ts"></script>
-</body>
-</html>
+  <input id="file" type="file" />
+  <select id="output-format">
+    <option value="jpg">JPEG</option>
+    <option value="png">PNG</option>
+    <option value="webm">WebM</option>
+  </select>
+  <button id="convert-btn">Convert</button>
+  <a id="download-link" href="#" download>Download</a>
+  <span id="status"></span></html>
