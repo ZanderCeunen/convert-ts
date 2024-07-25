@@ -20,102 +20,130 @@
     <canvas id="canvas" style="display:none;"></canvas>
     <a id="download" download>Download</a>
 
-    <script type="module">
-        import heic2any from 'heic2any';
+    <script>
         import { createFFmpeg, fetchFile } from '@ffmpeg/ffmpeg';
+        let ffmpeg;
 
         document.getElementById('upload').addEventListener('change', async (event) => {
-            const file = (event.target as HTMLInputElement).files[0];
-            const conversionType = (document.getElementById('conversionType') as HTMLSelectElement).value;
+            const file = event.target.files[0];
+            const conversionType = document.getElementById('conversionType').value;
             if (file) {
-                // ... rest of your code
-            }
-        });
-
-        document.getElementById('convert').addEventListener('click', async () => {
-            const file = (document.getElementById('upload') as HTMLInputElement).files[0];
-            const conversionType = (document.getElementById('conversionType') as HTMLSelectElement).value;
-
-            if (file) {
-                const reader = new FileReader();
-
-                if (conversionType === 'jpgToPng' && file.type === 'image/jpeg') {
-                    reader.onload = (e) => {
-                        const img = new Image();
-                        img.onload = () => {
-                            const canvas = document.getElementById('canvas') as HTMLCanvasElement;
-                            const ctx = canvas.getContext('2d');
-                            canvas.width = img.width;
-                            canvas.height = img.height;
-                            ctx.drawImage(img, 0, 0);
-                            const pngUrl = canvas.toDataURL('image/png');
-                            const downloadLink = document.getElementById('download') as HTMLAnchorElement;
-                            downloadLink.href = pngUrl;
-                            downloadLink.download = 'converted.png';
-                            downloadLink.style.display = 'block';
-                        };
-                        img.src = e.target.result as string;
-                    };
-                    reader.readAsDataURL(file);
-                } else if (conversionType === 'heicToJpg' && file.type === 'image/heic') {
-                    reader.onload = async (e) => {
-                        const heicBlob = new Blob([new Uint8Array(e.target.result as ArrayBuffer)], { type: 'image/heic' });
-                        const jpgBlob = await heic2any({ blob: heicBlob, toType: 'image/jpeg' });
-                        const jpgUrl = URL.createObjectURL(jpgBlob);
-                        const downloadLink = document.getElementById('download') as HTMLAnchorElement;
-                        downloadLink.href = jpgUrl;
-                        downloadLink.download = 'converted.jpg';
-                        downloadLink.style.display = 'block';
-                    };
-                    reader.readAsArrayBuffer(file);
-                } else if (conversionType === 'heicToPng' && file.type === 'image/heic') {
-                    reader.onload = async (e) => {
-                        const heicBlob = new Blob([new Uint8Array(e.target.result as ArrayBuffer)], { type: 'image/heic' });
-                        const pngBlob = await heic2any({ blob: heicBlob, toType: 'image/png' });
-                        const pngUrl = URL.createObjectURL(pngBlob);
-                        const downloadLink = document.getElementById('download') as HTMLAnchorElement;
-                        downloadLink.href = pngUrl;
-                        downloadLink.download = 'converted.png';
-                        downloadLink.style.display = 'block';
-                    };
-                    reader.readAsArrayBuffer(file);
-                } else if (conversionType === 'mp4ToAvi' && file.type === 'video/mp4') {
-                    const ffmpeg = createFFmpeg({ log: true });
-                    await ffmpeg.load();
-                    reader.onload = async (e) => {
-                        const mp4Data = new Uint8Array(e.target.result as ArrayBuffer);
-                        ffmpeg.FS('writeFile', 'input.mp4', mp4Data);
-                        await ffmpeg.run('-i', 'input.mp4', 'output.avi');
-                        const aviData = ffmpeg.FS('readFile', 'output.avi');
-                        const aviBlob = new Blob([aviData.buffer], { type: 'video/avi' });
-                        const aviUrl = URL.createObjectURL(aviBlob);
-                        const downloadLink = document.getElementById('download') as HTMLAnchorElement;
-                        downloadLink.href = aviUrl;
-                        downloadLink.download = 'converted.avi';
-                        downloadLink.style.display = 'block';
-                    };
-                    reader.readAsArrayBuffer(file);
-                } else if (conversionType === 'aviToMp4' && file.type === 'video/avi') {
-                    const ffmpeg = createFFmpeg({ log: true });
-                    await ffmpeg.load();
-                    reader.onload = async (e) => {
-                        const aviData = new Uint8Array(e.target.result as ArrayBuffer);
-                        ffmpeg.FS('writeFile', 'input.avi', aviData);
-                        await ffmpeg.run('-i', 'input.avi', 'output.mp4');
-                        const mp4Data = ffmpeg.FS('readFile', 'output.mp4');
-                        const mp4Blob = new Blob([mp4Data.buffer], { type: 'video/mp4' });
-                        const mp4Url = URL.createObjectURL(mp4Blob);
-                        const downloadLink = document.getElementById('download') as HTMLAnchorElement;
-                        downloadLink.href = mp4Url;
-                        downloadLink.download = 'converted.mp4';
-                        downloadLink.style.display = 'block';
-                    };
-                    reader.readAsArrayBuffer(file);
-                } else {
-                    alert('Please select a valid file type for the chosen conversion.');
+                if (!window.FileReader) {
+                    alert('This browser does not support the FileReader API.');
+                    return;
                 }
-            }
-        });
-    </script>
-</body>
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const fileBuffer = e.target.result;
+                    switch (conversionType) {
+                        case 'jpgToPng':
+                            const img = new Image();
+                            img.onload = () => {
+                                const canvas = document.getElementById('canvas');
+                                const ctx = canvas.getContext('2d');
+                                canvas.width = img.width;
+                                canvas.height = img.height;
+                                ctx.drawImage(img, 0, 0);
+                                const pngUrl = canvas.toDataURL('image/png');
+                                const downloadLink = document.getElementById('download');
+                                downloadLink.href = pngUrl;
+                                downloadLink.download = 'converted.png';
+                                downloadLink.style.display = 'block';
+                            };
+                            img.src = `data:${file.type};base64,${fileBuffer.toString('base64')}`;
+                            break;
+                        case 'heicToJpg':
+                            try {
+                                const heicBlob = new Blob([new Uint8Array(fileBuffer)], { type: 'image/heic' });
+                                const jpgBlob = await heic2any({ blob: heicBlob, toType: 'image/jpeg' });
+                                const url = URL.createObjectURL(jpgBlob);
+                                const downloadLink = document.getElementById('download');
+                                downloadLink.href = url;
+                                downloadLink.download = 'converted.jpg';
+                                downloadLink.style.display = 'block';
+                            } catch (error) {
+                                alert(`Error: ${error.message}`);
+                            }
+                            break;
+                        case 'heicToPng':
+                            try {
+                                const heicBlob = new Blob([new Uint8Array(fileBuffer)], { type: 'image/heic' });
+                                const pngBlob = await heic2any({ blob: heicBlob, toType: 'image/png' });
+                                const url = URL.createObjectURL(pngBlob);
+                                const downloadLink = document.getElementById('download');
+                                downloadLink.href = url;
+                                downloadLink.download = 'converted.png';
+                                downloadLink.style.display = 'block';
+                            } catch (error) {
+                                alert(`Error: ${error.message}`);
+                            }
+                            break;
+                        case 'mp4ToAvi':
+                            try {
+                                ffmpeg = createFFmpeg({ log: true });
+                                await ffmpeg.load();
+                                ffmpeg.FS('writeFile', 'input.mp4', fileBuffer);
+                                await ffmpeg.run('-i', 'input.mp4', 'output.avi');
+                                const aviData = ffmpeg.FS('readFile', 'output.avi');
+                                const aviBlob = new Blob([aviData.buffer], { type: 'video/avi' });
+                                const url = URL.createObjectURL(aviBlob);
+                                const downloadLink = document.getElementById('download');
+                                downloadLink.href = url;
+                                downloadLink.download = 'converted.avi';
+                                downloadLink.style.display = 'block';
+                            } catch (error) {
+                                alert(`Error: ${error.message}`);
+                            }
+                            finally {
+                                if (ffmpeg) {
+                                    await ffmpeg.close();
+                                    ffmpeg.destroy();
+                                    delete ffmpeg;
+                                    ffmpeg = null;
+                                }
+                            }
+                            break;
+                        case 'aviToMp4':
+                            try {
+                                ffmpeg = createFFmpeg({ log: true });
+                                await ffmpeg.load();
+                                ffmpeg.FS('writeFile', 'input.avi', fileBuffer);
+                                await ffmpeg.run('-i', 'input.avi', 'output.mp4');
+                                const mp4Data = ffmpeg.FS('readFile', 'output.mp4');
+                                const mp4Blob = new Blob([mp4Data.buffer], { type: 'video/mp4' });
+                                const url = URL.createObjectURL(mp4Blob);
+                                const downloadLink = document.getElementById('download');
+                                downloadLink.href = url;
+                                downloadLink.download = 'converted.mp4';
+                                downloadLink.style.display = 'block';
+                            } catch (error) {
+                                alert(`Error: ${error.message}`);
+                            }
+                            finally {
+                                if (ffmpeg) {
+                                    await ffmpeg.close();
+                                    ffmpeg.destroy();
+                                    delete ffmpeg;
+                                    ffmpeg = null;
+                                    console.log("FFmpeg closed");
+                                  }
+                              }
+                          }
+                      }
+                  };
+                  reader.readAsArrayBuffer(file);
+              };
+          });
+
+          document.getElementById('convert').addEventListener('click', async () => {
+              if (ffmpeg) {
+                  await ffmpeg.close();
+                  ffmpeg.destroy();
+                  delete ffmpeg;
+                  ffmpeg = null;
+              }
+              document.getElementById('upload').click();
+          });
+      </script>
+  </body>
 </html>
