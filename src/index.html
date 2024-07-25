@@ -3,147 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>File Converter</title>
+    <title>Image and Video Converter</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <h1>File Converter</h1>
-    <label for="conversionType">Choose conversion type:</label>
-    <select id="conversionType">
-        <option value="jpgToPng">JPG to PNG</option>
-        <option value="heicToJpg">HEIC to JPG</option>
-        <option value="heicToPng">HEIC to PNG</option>
-        <option value="mp4ToAvi">MP4 to AVI</option>
-        <option value="aviToMp4">AVI to MP4</option>
-    </select>
-    <input type="file" id="upload" accept="image/jpeg, image/heic, video/mp4, video/avi">
-    <button id="convert">Convert</button>
-    <canvas id="canvas" style="display:none;"></canvas>
-    <a id="download" download>Download</a>
+    <h1>Image and Video Converter</h1>
+    <div class="container">
+        <label for="file">Select a file:</label>
+        <input type="file" id="file" accept=".jpg,.jpeg,.png,.heic,.mp4,.avi">
+        <select id="output-format">
+            <option value="jpg">JPEG</option>
+            <option value="png">PNG</option>
+            <option value="heic">HEIC</option>
+            <option value="mp4">MP4</option>
+            <option value="avi">AVI</option>
+        </select>
+        <button id="convert-btn">Convert</button>
+        <a id="download-link" download></a>
+    </div>
 
-    <script>
-        import { createFFmpeg, fetchFile } from '@ffmpeg/ffmpeg';
-        let ffmpeg;
-
-        document.getElementById('upload').addEventListener('change', async (event) => {
-            const file = event.target.files[0];
-            const conversionType = document.getElementById('conversionType').value;
-            if (file) {
-                if (!window.FileReader) {
-                    alert('This browser does not support the FileReader API.');
-                    return;
-                }
-                const reader = new FileReader();
-                reader.onload = async (e) => {
-                    const fileBuffer = e.target.result;
-                    switch (conversionType) {
-                        case 'jpgToPng':
-                            const img = new Image();
-                            img.onload = () => {
-                                const canvas = document.getElementById('canvas');
-                                const ctx = canvas.getContext('2d');
-                                canvas.width = img.width;
-                                canvas.height = img.height;
-                                ctx.drawImage(img, 0, 0);
-                                const pngUrl = canvas.toDataURL('image/png');
-                                const downloadLink = document.getElementById('download');
-                                downloadLink.href = pngUrl;
-                                downloadLink.download = 'converted.png';
-                                downloadLink.style.display = 'block';
-                            };
-                            img.src = `data:${file.type};base64,${fileBuffer.toString('base64')}`;
-                            break;
-                        case 'heicToJpg':
-                            try {
-                                const heicBlob = new Blob([new Uint8Array(fileBuffer)], { type: 'image/heic' });
-                                const jpgBlob = await heic2any({ blob: heicBlob, toType: 'image/jpeg' });
-                                const url = URL.createObjectURL(jpgBlob);
-                                const downloadLink = document.getElementById('download');
-                                downloadLink.href = url;
-                                downloadLink.download = 'converted.jpg';
-                                downloadLink.style.display = 'block';
-                            } catch (error) {
-                                alert(`Error: ${error.message}`);
-                            }
-                            break;
-                        case 'heicToPng':
-                            try {
-                                const heicBlob = new Blob([new Uint8Array(fileBuffer)], { type: 'image/heic' });
-                                const pngBlob = await heic2any({ blob: heicBlob, toType: 'image/png' });
-                                const url = URL.createObjectURL(pngBlob);
-                                const downloadLink = document.getElementById('download');
-                                downloadLink.href = url;
-                                downloadLink.download = 'converted.png';
-                                downloadLink.style.display = 'block';
-                            } catch (error) {
-                                alert(`Error: ${error.message}`);
-                            }
-                            break;
-                        case 'mp4ToAvi':
-                            try {
-                                ffmpeg = createFFmpeg({ log: true });
-                                await ffmpeg.load();
-                                ffmpeg.FS('writeFile', 'input.mp4', fileBuffer);
-                                await ffmpeg.run('-i', 'input.mp4', 'output.avi');
-                                const aviData = ffmpeg.FS('readFile', 'output.avi');
-                                const aviBlob = new Blob([aviData.buffer], { type: 'video/avi' });
-                                const url = URL.createObjectURL(aviBlob);
-                                const downloadLink = document.getElementById('download');
-                                downloadLink.href = url;
-                                downloadLink.download = 'converted.avi';
-                                downloadLink.style.display = 'block';
-                            } catch (error) {
-                                alert(`Error: ${error.message}`);
-                            }
-                            finally {
-                                if (ffmpeg) {
-                                    await ffmpeg.close();
-                                    ffmpeg.destroy();
-                                    delete ffmpeg;
-                                    ffmpeg = null;
-                                }
-                            }
-                            break;
-                        case 'aviToMp4':
-                            try {
-                                ffmpeg = createFFmpeg({ log: true });
-                                await ffmpeg.load();
-                                ffmpeg.FS('writeFile', 'input.avi', fileBuffer);
-                                await ffmpeg.run('-i', 'input.avi', 'output.mp4');
-                                const mp4Data = ffmpeg.FS('readFile', 'output.mp4');
-                                const mp4Blob = new Blob([mp4Data.buffer], { type: 'video/mp4' });
-                                const url = URL.createObjectURL(mp4Blob);
-                                const downloadLink = document.getElementById('download');
-                                downloadLink.href = url;
-                                downloadLink.download = 'converted.mp4';
-                                downloadLink.style.display = 'block';
-                            } catch (error) {
-                                alert(`Error: ${error.message}`);
-                            }
-                            finally {
-                                if (ffmpeg) {
-                                    await ffmpeg.close();
-                                    ffmpeg.destroy();
-                                    delete ffmpeg;
-                                    ffmpeg = null;
-                                    console.log("FFmpeg closed");
-                                  }
-                              }
-                          }
-                      }
-                  };
-                  reader.readAsArrayBuffer(file);
-              };
-          });
-
-          document.getElementById('convert').addEventListener('click', async () => {
-              if (ffmpeg) {
-                  await ffmpeg.close();
-                  ffmpeg.destroy();
-                  delete ffmpeg;
-                  ffmpeg = null;
-              }
-              document.getElementById('upload').click();
-          });
-      </script>
-  </body>
+    <script src="script.ts"></script>
+</body>
 </html>
