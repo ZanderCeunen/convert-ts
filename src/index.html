@@ -16,6 +16,7 @@
         <option value="aviToMp4">AVI to MP4</option>
     </select>
     <input type="file" id="upload" accept="image/jpeg, image/heic, video/mp4, video/avi">
+    <button id="convert">Convert</button>
     <canvas id="canvas" style="display:none;"></canvas>
     <a id="download" download>Download</a>
 
@@ -26,6 +27,15 @@
         document.getElementById('upload').addEventListener('change', async (event) => {
             const file = (event.target as HTMLInputElement).files[0];
             const conversionType = (document.getElementById('conversionType') as HTMLSelectElement).value;
+            if (file) {
+                // ... rest of your code
+            }
+        });
+
+        document.getElementById('convert').addEventListener('click', async () => {
+            const file = (document.getElementById('upload') as HTMLInputElement).files[0];
+            const conversionType = (document.getElementById('conversionType') as HTMLSelectElement).value;
+
             if (file) {
                 const reader = new FileReader();
 
