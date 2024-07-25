@@ -1,0 +1,70 @@
+// index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JPG to PNG Converter</title>
+</head>
+<body>
+    <input type="file" id="imageInput" multiple>
+    <button onclick="convertToPNG()">Convert to PNG</button>
+    <div id="progressBar"></div>
+
+    <script>
+        function convertToPNG() {
+            const input = document.getElementById('imageInput');
+            const progressBar = document.getElementById('progressBar');
+
+            const files = Array.from(input.files);
+            if (files.length === 0) return;
+
+            let processedCount = 0;
+
+            function processFile(file) {
+                const reader = new FileReader();
+                reader.onload = function (event) {
+                    const img = new Image();
+                    img.src = event.target.result;
+
+                    img.onload = function () {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, img.width, img.height);
+
+                        // Convert canvas to PNG data URL
+                        const pngDataUrl = canvas.toDataURL('image/png');
+
+                        // Create a download link
+                        const a = document.createElement('a');
+                        a.href = pngDataUrl;
+                        a.download = `${file.name.replace(/\.[^.]+$/, '')}.png`;
+                        a.click();
+
+                        processedCount++;
+                        updateProgressBar();
+                    };
+                };
+
+                reader.readAsDataURL(file);
+            }
+
+            function updateProgressBar() {
+                const progress = (processedCount / files.length) * 100;
+                progressBar.style.width = `${progress}%`;
+
+                if (processedCount === files.length) {
+                    setTimeout(() => {
+                        progressBar.style.width = '0%'; // Reset progress bar
+                    }, 1000);
+                }
+            }
+
+            files.forEach(processFile);
+        }
+    </script>
+</body>
+</html>
