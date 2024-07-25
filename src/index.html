@@ -7,7 +7,15 @@
 </head>
 <body>
     <h1>File Converter</h1>
-    <input type="file" id="upload" accept="image/jpeg, image/heic, video/avi">
+    <label for="conversionType">Choose conversion type:</label>
+    <select id="conversionType">
+        <option value="jpgToPng">JPG to PNG</option>
+        <option value="heicToJpg">HEIC to JPG</option>
+        <option value="heicToPng">HEIC to PNG</option>
+        <option value="mp4ToAvi">MP4 to AVI</option>
+        <option value="aviToMp4">AVI to MP4</option>
+    </select>
+    <input type="file" id="upload" accept="image/jpeg, image/heic, video/mp4, video/avi">
     <canvas id="canvas" style="display:none;"></canvas>
     <a id="download" download>Download</a>
 
@@ -17,11 +25,11 @@
 
         document.getElementById('upload').addEventListener('change', async (event) => {
             const file = (event.target as HTMLInputElement).files[0];
+            const conversionType = (document.getElementById('conversionType') as HTMLSelectElement).value;
             if (file) {
-                const fileType = file.type;
                 const reader = new FileReader();
 
-                if (fileType === 'image/jpeg') {
+                if (conversionType === 'jpgToPng' && file.type === 'image/jpeg') {
                     reader.onload = (e) => {
                         const img = new Image();
                         img.onload = () => {
@@ -39,7 +47,7 @@
                         img.src = e.target.result as string;
                     };
                     reader.readAsDataURL(file);
-                } else if (fileType === 'image/heic') {
+                } else if (conversionType === 'heicToJpg' && file.type === 'image/heic') {
                     reader.onload = async (e) => {
                         const heicBlob = new Blob([new Uint8Array(e.target.result as ArrayBuffer)], { type: 'image/heic' });
                         const jpgBlob = await heic2any({ blob: heicBlob, toType: 'image/jpeg' });
@@ -50,7 +58,34 @@
                         downloadLink.style.display = 'block';
                     };
                     reader.readAsArrayBuffer(file);
-                } else if (fileType === 'video/avi') {
+                } else if (conversionType === 'heicToPng' && file.type === 'image/heic') {
+                    reader.onload = async (e) => {
+                        const heicBlob = new Blob([new Uint8Array(e.target.result as ArrayBuffer)], { type: 'image/heic' });
+                        const pngBlob = await heic2any({ blob: heicBlob, toType: 'image/png' });
+                        const pngUrl = URL.createObjectURL(pngBlob);
+                        const downloadLink = document.getElementById('download') as HTMLAnchorElement;
+                        downloadLink.href = pngUrl;
+                        downloadLink.download = 'converted.png';
+                        downloadLink.style.display = 'block';
+                    };
+                    reader.readAsArrayBuffer(file);
+                } else if (conversionType === 'mp4ToAvi' && file.type === 'video/mp4') {
+                    const ffmpeg = createFFmpeg({ log: true });
+                    await ffmpeg.load();
+                    reader.onload = async (e) => {
+                        const mp4Data = new Uint8Array(e.target.result as ArrayBuffer);
+                        ffmpeg.FS('writeFile', 'input.mp4', mp4Data);
+                        await ffmpeg.run('-i', 'input.mp4', 'output.avi');
+                        const aviData = ffmpeg.FS('readFile', 'output.avi');
+                        const aviBlob = new Blob([aviData.buffer], { type: 'video/avi' });
+                        const aviUrl = URL.createObjectURL(aviBlob);
+                        const downloadLink = document.getElementById('download') as HTMLAnchorElement;
+                        downloadLink.href = aviUrl;
+                        downloadLink.download = 'converted.avi';
+                        downloadLink.style.display = 'block';
+                    };
+                    reader.readAsArrayBuffer(file);
+                } else if (conversionType === 'aviToMp4' && file.type === 'video/avi') {
                     const ffmpeg = createFFmpeg({ log: true });
                     await ffmpeg.load();
                     reader.onload = async (e) => {
@@ -66,6 +101,8 @@
                         downloadLink.style.display = 'block';
                     };
                     reader.readAsArrayBuffer(file);
+                } else {
+                    alert('Please select a valid file type for the chosen conversion.');
                 }
             }
         });
